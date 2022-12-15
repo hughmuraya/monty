@@ -1,73 +1,119 @@
 #include "monty.h"
 
-void free_stack(stack_t *stack);
-int misc[] = {0, 0, 0};
+glob_t global = {NULL, NULL};
 
 /**
- * main - Process Monty byte codes from a file passed in as an argument.
- * @argc: The number of arguments passed to the program.
- * @argv: A double pointer containing the arguments passed.
- * Return: EXIT_SUCCESS if no errors encountered..
+ * main - Entry point
+ * @argc: Number of arguments
+ * @argv: Arguments
+ * Return: number of arguments.
  */
 
-int main(int argc, char **argv)
+int main(int argc, char *argv[])
 {
-	FILE *monty_file;
-	char *buffer = NULL;
-	ssize_t len;
-	size_t n;
-	unsigned int line_number = 0;
-	stack_t *stack = NULL;
-
-	misc[MODE_IDX] = STAK_MODE;
-	if (argc != 2)
+	if (argc == 2)
+		handle_command(argv[1]);
+	else
 	{
-		fprintf(stderr, "USAGE: monty file\n");
+		dprintf(STDERR_FILENO, "USAGE: monty file\n");
 		exit(EXIT_FAILURE);
 	}
-
-	monty_file = fopen(argv[1], "r");
-	if (monty_file == NULL)
-	{
-		fprintf(stderr, "Error: Can't open file %s\n", argv[1]);
-		exit(EXIT_FAILURE);
-	}
-
-	len = getline(&buffer, &n, monty_file);
-	while (len != -1)
-	{
-		line_number++;
-		proc_line(buffer, line_number, &stack);
-		free(buffer);
-		buffer = NULL;
-		if (misc[ERROR_IDX] != 0)
-		{
-			free_stack(stack);
-			fclose(monty_file);
-			exit(EXIT_FAILURE);
-		}
-		len = getline(&buffer, &n, monty_file);
-	}
-	free(buffer);
-	free_stack(stack);
-	fclose(monty_file);
-	return (EXIT_SUCCESS);
+	return (0);
 }
 
 /**
- * free_stack - Frees up the memory allocated for the stack.
- * @stack: Pointer to the beginning of the stack.
- * Return: Void.
+ * handle_command - Read file
+ * @argv: Arguments
+ * Return: Nothing
  */
 
-void free_stack(stack_t *stack)
+void handle_command(char *argv)
 {
-	stack_t *next;
+	int count = 0, result = 0;
+	size_t bufsize = 0;
+	char *arguments = NULL, *item = NULL;
+	stack_t *stack = NULL;
 
-	while (stack != NULL)
+	global.fd = fopen(argv, "r");
+	if (global.fd)
 	{
-		next = stack->next;
-		free(stack);
-		stack = next;
+		while (getline(&global.line, &bufsize, global.fd) != -1)
+		{
+			count++;
+			arguments = strtok(global.line, " \n\t\r");
+			if (arguments == NULL)
+			{
+				free(arguments);
+				continue;
+			}
+			else if (*arguments == '#')
+				continue;
+			item = strtok(NULL, " \n\t\r");
+			result = get_opc(&stack, arguments, item, count);
+			if (result == 1)
+				push_error(global.fd, global.line, stack, count);
+			else if (result == 2)
+				ins_error(global.fd, global.line, stack, arguments, count);
+		}
+		free(global.line);
+		free_dlistint(stack);
+		fclose(global.fd);
 	}
+	else
+	{
+		dprintf(STDERR_FILENO, "Error: Can't open file %s\n", argv);
+		exit(EXIT_FAILURE);
+	}
+}
+
+/**
+ * get_opc - function to handle the opcode
+ * @stack: is a stack or queue
+ * @arg: is a parameter
+ * @item: is a parameter
+ * @count: is a line command
+ * Return: nothing
+ */
+
+int get_opc(stack_t **stack, char *arg, char *item, int count)
+{
+	int i = 0;
+
+	instruction_t op[] = {
+		{"push", _push},
+		{"pall", _pall},
+		{"pint", _pint},
+		{"pop", _pop},
+		{"swap", _swap},
+		{"add", _add},
+		{"sub", _sub},
+		{"nop", _nop},
+		{"div", _div},
+		{"mul", _mul},
+		{"mod", _mod},
+		{"pchar", _pchar},
+		{"pstr", _pstr},
+		{NULL, NULL}
+	};
+
+	while (op[i].opcode)
+	{
+		if (!strcmp(arg, op[i].opcode))
+		{
+			if (!strcmp(arg, "push"))
+			{
+				if (_isdigit(item) == 1)
+					value = atoi(item);
+				else
+					return (1);
+			}
+			op[i].f(stack, (unsigned int)count);
+			break;
+		}
+		i++;
+	}
+	if (!op[i].opcode)
+		return (2);
+
+	return (0);
 }

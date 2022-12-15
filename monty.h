@@ -1,9 +1,14 @@
-#ifndef _MONTY_H_
-#define _MONTY_H_
+#ifndef MONTY_H
+#define MONTY_H
+
 #include <stdio.h>
 #include <stdlib.h>
+#include <sys/types.h>
+#include <errno.h>
+#include <sys/stat.h>
+#include <fcntl.h>
+#include <unistd.h>
 #include <string.h>
-#include <ctype.h>
 
 /**
  * struct stack_s - doubly linked list representation of a stack (or queue)
@@ -25,6 +30,8 @@ typedef struct stack_s
  * struct instruction_s - opcode and its function
  * @opcode: the opcode
  * @f: function to handle the opcode
+ * Description: opcode and its function
+ *  for stack, queues, LIFO, FIFO ALX SE project
  */
 
 typedef struct instruction_s
@@ -33,34 +40,49 @@ typedef struct instruction_s
 	void (*f)(stack_t **stack, unsigned int line_number);
 } instruction_t;
 
-extern int misc[];
+/**
+ * struct glob_s - global and its funcs
+ * @fd: File descriptor
+ * @line: Line to getline
+ * Description: To handle the file and getline
+ */
 
-#define N_IDX 0
-#define MODE_IDX 1
-#define ERROR_IDX 2
+typedef struct glob_s
+{
+	FILE *fd;
+	char *line;
+} glob_t;
 
-#define STAK_MODE 1
-#define QUEU_MODE 0
+extern glob_t global;
+extern int value;
 
-void (*get_op(char *tok))(stack_t **stack, unsigned int line_number);
-void proc_line(char *buffer, unsigned int line_number, stack_t **stack);
+void handle_command(char *argv);
 
-void push(stack_t **stack, unsigned int line_number);
-void pall(stack_t **stack, unsigned int line_number);
-void pint(stack_t **stack, unsigned int line_number);
-void pop(stack_t **stack, unsigned int line_number);
-void swap(stack_t **stack, unsigned int line_number);
-void add(stack_t **stack, unsigned int line_number);
-void sub(stack_t **stack, unsigned int line_number);
-void nop(stack_t **stack, unsigned int line_number);
-void mul(stack_t **stack, unsigned int line_number);
-void mod(stack_t **stack, unsigned int line_number);
+int get_opc(stack_t **stack, char *arg, char *item, int count);
+
+void _push(stack_t **stack, unsigned int line_number);
+void _pall(stack_t **stack, unsigned int line_number);
+void _pint(stack_t **stack, unsigned int line_number);
+void _swap(stack_t **stack, unsigned int line_number);
+void _pop(stack_t **stack, unsigned int line_number);
+void _add(stack_t **stack, unsigned int line_number);
+void _sub(stack_t **stack, unsigned int line_number);
+void _nop(stack_t **stack, unsigned int line_number);
 void _div(stack_t **stack, unsigned int line_number);
-void pchar(stack_t **stack, unsigned int line_number);
-void pstr(stack_t **stack, unsigned int line_number);
-void rotl(stack_t **stack, unsigned int line_number);
-void rotr(stack_t **stack, unsigned int line_number);
-void stack_set(stack_t **stack, unsigned int line_number);
-void queue_set(stack_t **stack, unsigned int line_number);
-char check_num(char *num);
+void _mul(stack_t **stack, unsigned int line_number);
+void _mod(stack_t **stack, unsigned int line_number);
+void _pchar(stack_t **stack, unsigned int line_number);
+void _pstr(stack_t **stack, unsigned int line_number);
+void free_dlistint(stack_t *stack);
+void cleanStack(stack_t **stack);
+
+/*Help*/
+
+int _isdigit(char *c);
+stack_t *new_Node(int n);
+
+/* handle_errors */
+void push_error(FILE *fd, char *line, stack_t *stack, int count);
+void ins_error(FILE *fd, char *line, stack_t *stack, char *count, int item);
+
 #endif
